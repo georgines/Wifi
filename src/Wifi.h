@@ -44,6 +44,7 @@ private:
     bool iniciarRadio();
     bool conectarRede(uint32_t tempo_limite_ms);
     const char *converterEnderecoParaTexto(const ip4_addr_t &endereco_origem) const;
+    void pausarExecucaoPorMilissegundos(uint32_t tempo_milissegundos);
 
     const char *ssid;
     const char *senha;

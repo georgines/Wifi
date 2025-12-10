@@ -6,6 +6,14 @@
 #include "lwip/netif.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
+#ifdef HABILITAR_FREERTOS
+#include "FreeRTOS.h"
+#include "task.h"
+#endif
+
+
+
+    
 
 
 Wifi *Wifi::instanciaAtiva = nullptr;
@@ -24,8 +32,6 @@ Wifi::~Wifi()
     }
 }
 
-
-
 bool Wifi::iniciar()
 {
     if (!iniciarRadio())
@@ -37,7 +43,7 @@ bool Wifi::iniciar()
 
     if (!conectarRede(TEMPO_INICIAL_MS))
     {
-        std::printf("Falha ao conectar no Wi-Fi inicial.\n");
+        // std::printf("Falha ao conectar no Wi-Fi inicial.\n");
         return false;
     }
 
@@ -51,7 +57,7 @@ bool Wifi::garantirConexao()
         return true;
     }
 
-    std::printf("Reconectando ao Wi-Fi...\n");
+    // std::printf("Reconectando ao Wi-Fi...\n");
     return conectarRede(TEMPO_RECONEXAO_MS);
 }
 
@@ -75,7 +81,7 @@ bool Wifi::iniciarRadio()
     int codigo_resultado = cyw43_arch_init();
     if (codigo_resultado != 0)
     {
-        std::printf("Falha ao iniciar radio Wi-Fi: %d\n", codigo_resultado);
+        // std::printf("Falha ao iniciar radio Wi-Fi: %d\n", codigo_resultado);
         return false;
     }
 
@@ -98,15 +104,13 @@ bool Wifi::conectarRede(uint32_t tempo_limite_ms)
         {
             if (netif_default)
             {
-                std::printf("Wi-Fi conectado. IP: %s\n", ipaddr_ntoa(&netif_default->ip_addr));
+                // std::printf("Wi-Fi conectado. IP: %s\n", ipaddr_ntoa(&netif_default->ip_addr));
             }
             return true;
         }
 
-        std::printf("Tentativa %lu falhou (%d).\n", static_cast<unsigned long>(tentativa + 1U), codigo_conexao);
-        sleep_ms(ESPERA_ENTRE_TENTATIVAS_MS);
+        pausarExecucaoPorMilissegundos(ESPERA_ENTRE_TENTATIVAS_MS);
     }
-
     return false;
 }
 
@@ -186,3 +190,12 @@ const char *Wifi::converterEnderecoParaTexto(const ip4_addr_t &endereco_origem) 
     ip4addr_ntoa_r(&endereco_formatado, textoEnderecoTemporario, static_cast<int>(TAMANHO_TEXTO_IP));
     return textoEnderecoTemporario;
 }
+
+void Wifi::pausarExecucaoPorMilissegundos(uint32_t tempo_milissegundos)
+    {
+#ifdef HABILITAR_FREERTOS
+        vTaskDelay(pdMS_TO_TICKS(tempo_milissegundos));
+#else
+        sleep_ms(tempo_milissegundos);
+#endif
+    }

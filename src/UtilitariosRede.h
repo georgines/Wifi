@@ -23,6 +23,7 @@ private:
 
     static void tratarRespostaDns(const char *nome_host, const ip_addr_t *endereco_resolvido,
                                   void *contexto_usuario);
+
 };
 
 #endif

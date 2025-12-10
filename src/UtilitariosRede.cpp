@@ -4,8 +4,17 @@
 #include "lwip/err.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
+#ifdef HABILITAR_FREERTOS
+#include "FreeRTOS.h"
+#include "task.h"
+#endif
 
-struct UtilitariosRede::ContextoResolucaoDns {
+
+   
+
+
+struct UtilitariosRede::ContextoResolucaoDns
+{
     bool resolvido = false;
     err_t codigoResultado = ERR_INPROGRESS;
     ip_addr_t enderecoRecebido{};
@@ -56,8 +65,13 @@ bool UtilitariosRede::resolverNomeHostParaIp(const char *nome_host, ip4_addr_t &
                 break;
             }
 
-            cyw43_arch_poll();
-            sleep_ms(INTERVALO_POLL_DNS_MS);
+#ifdef HABILITAR_FREERTOS
+        vTaskDelay(pdMS_TO_TICKS(INTERVALO_POLL_DNS_MS));
+#else
+        cyw43_arch_poll();
+        sleep_ms(INTERVALO_POLL_DNS_MS);
+#endif
+
         }
     }
 
@@ -143,3 +157,5 @@ void UtilitariosRede::tratarRespostaDns(const char *nome_host, const ip_addr_t *
     contexto->codigoResultado = ERR_OK;
     contexto->resolvido = true;
 }
+
+

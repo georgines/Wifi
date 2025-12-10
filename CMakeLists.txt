@@ -11,7 +11,7 @@ target_link_libraries(Wifi PUBLIC
         pico_stdlib
 )
 
-if(HABILITAR_FREERTOS)
+if(TARGET FreeRTOS)
     target_compile_definitions(Wifi PUBLIC
             HABILITAR_FREERTOS_LWIP=1
     )
