@@ -1,9 +1,6 @@
 #include "Wifi.h"
-
-#include <cstdio>
-
-#include "lwip/ip4_addr.h"
 #include "lwip/netif.h"
+#include "lwip/ip4_addr.h"
 #include "pico/cyw43_arch.h"
 #include "pico/stdlib.h"
 #ifdef HABILITAR_FREERTOS
@@ -11,191 +8,87 @@
 #include "task.h"
 #endif
 
+Wifi::Wifi() {}
 
-
-    
-
-
-Wifi *Wifi::instanciaAtiva = nullptr;
-
-Wifi::Wifi(const char *ssid_rede, const char *senha_rede)
-    : ssid(ssid_rede), senha(senha_rede), radioInicializado(false)
+void Wifi::iniciar(const char *ssid, const char *senha)
 {
-    instanciaAtiva = this;
+    this->ssid = ssid;
+    this->senha = senha;
+    cyw43_arch_init();
+    reiniciarWifi();
+    inicio_tempo = get_absolute_time();
+    status_do_link_atual = StatusWifi::Desligado;
 }
 
-Wifi::~Wifi()
+StatusWifi Wifi::obterStatusWifi()
 {
-    if (instanciaAtiva == this)
+    status_do_link_atual = static_cast<StatusWifi>(cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA));
+
+    if (absolute_time_diff_us(inicio_tempo, get_absolute_time()) > 2000000) // 2 segundos
     {
-        instanciaAtiva = nullptr;
-    }
-}
-
-bool Wifi::iniciar()
-{
-    if (!iniciarRadio())
-    {
-        return false;
-    }
-
-    cyw43_arch_enable_sta_mode();
-
-    if (!conectarRede(TEMPO_INICIAL_MS))
-    {
-        // std::printf("Falha ao conectar no Wi-Fi inicial.\n");
-        return false;
-    }
-
-    return true;
-}
-
-bool Wifi::garantirConexao()
-{
-    if (estaConectado())
-    {
-        return true;
-    }
-
-    // std::printf("Reconectando ao Wi-Fi...\n");
-    return conectarRede(TEMPO_RECONEXAO_MS);
-}
-
-bool Wifi::estaConectado() const
-{
-    if (!radioInicializado || !netif_default)
-    {
-        return false;
-    }
-
-    return netif_is_up(netif_default) && netif_is_link_up(netif_default);
-}
-
-bool Wifi::iniciarRadio()
-{
-    if (radioInicializado)
-    {
-        return true;
-    }
-
-    int codigo_resultado = cyw43_arch_init();
-    if (codigo_resultado != 0)
-    {
-        // std::printf("Falha ao iniciar radio Wi-Fi: %d\n", codigo_resultado);
-        return false;
-    }
-
-    radioInicializado = true;
-    return true;
-}
-
-bool Wifi::conectarRede(uint32_t tempo_limite_ms)
-{
-    if (!radioInicializado)
-    {
-        return false;
-    }
-
-    for (uint32_t tentativa = 0; tentativa < TOTAL_TENTATIVAS; tentativa++)
-    {
-        int codigo_conexao = cyw43_arch_wifi_connect_timeout_ms(ssid, senha, CYW43_AUTH_WPA2_AES_PSK, tempo_limite_ms);
-
-        if (codigo_conexao == 0)
+        if (status_do_link_atual < 0)
         {
-            if (netif_default)
-            {
-                // std::printf("Wi-Fi conectado. IP: %s\n", ipaddr_ntoa(&netif_default->ip_addr));
-            }
-            return true;
+            reiniciarWifi();
         }
-
-        pausarExecucaoPorMilissegundos(ESPERA_ENTRE_TENTATIVAS_MS);
+        inicio_tempo = get_absolute_time();
     }
-    return false;
+
+    return status_do_link_atual;
 }
 
-ip4_addr_t Wifi::obterIpLocal() const
+const char *Wifi::obterIp()
 {
-    ip4_addr_t endereco{};
-    ip4_addr_set_zero(&endereco);
-
-    if (!radioInicializado || !netif_default)
+    const char *ip_str = "";
+    if (status_do_link_atual != StatusWifi::Conectado)
     {
-        return endereco;
+        return ip_str;
     }
-
     cyw43_arch_lwip_begin();
-    ip4_addr_copy(endereco, *netif_ip4_addr(netif_default));
+    ip_str = ip4addr_ntoa(netif_ip4_addr(netif_default));
     cyw43_arch_lwip_end();
 
-    return endereco;
+    return ip_str;
 }
 
-const char *Wifi::obterIpLocalComoTexto() const
+const char *Wifi::obterGatewayPadrao()
 {
-    ip4_addr_t endereco = obterIpLocal();
-    return converterEnderecoParaTexto(endereco);
-}
-
-ip4_addr_t Wifi::obterGatewayPadrao() const
-{
-    ip4_addr_t endereco{};
-    ip4_addr_set_zero(&endereco);
-
-    if (!radioInicializado || !netif_default)
+    const char *gw_str = "";
+    if (status_do_link_atual != StatusWifi::Conectado)
     {
-        return endereco;
+        return gw_str;
     }
-
     cyw43_arch_lwip_begin();
-    ip4_addr_copy(endereco, *netif_ip4_gw(netif_default));
+    gw_str = ip4addr_ntoa(netif_ip4_gw(netif_default));
     cyw43_arch_lwip_end();
-
-    return endereco;
+    return gw_str;
 }
 
-const char *Wifi::obterGatewayPadraoComoTexto() const
+const char *Wifi::obterMascaraDeRede()
 {
-    ip4_addr_t endereco = obterGatewayPadrao();
-    return converterEnderecoParaTexto(endereco);
-}
-
-ip4_addr_t Wifi::obterMascaraSubrede() const
-{
-    ip4_addr_t mascara{};
-    ip4_addr_set_zero(&mascara);
-
-    if (!radioInicializado || !netif_default)
+    const char *mask_str = "";
+    if (status_do_link_atual != StatusWifi::Conectado)
     {
-        return mascara;
+        return mask_str;
     }
-
     cyw43_arch_lwip_begin();
-    ip4_addr_copy(mascara, *netif_ip4_netmask(netif_default));
+    mask_str = ip4addr_ntoa(netif_ip4_netmask(netif_default));
     cyw43_arch_lwip_end();
-
-    return mascara;
+    return mask_str;
 }
 
-const char *Wifi::obterMascaraSubredeComoTexto() const
+void Wifi::reiniciarWifi()
 {
-    ip4_addr_t mascara = obterMascaraSubrede();
-    return converterEnderecoParaTexto(mascara);
+    cyw43_arch_disable_sta_mode();
+    sleep_ms_compatível(100);
+    cyw43_arch_enable_sta_mode();
+    cyw43_arch_wifi_connect_async(ssid, senha, CYW43_AUTH_WPA2_AES_PSK);
 }
 
-const char *Wifi::converterEnderecoParaTexto(const ip4_addr_t &endereco_origem) const
+void Wifi::sleep_ms_compatível(uint32_t ms)
 {
-    ip4_addr_t endereco_formatado{};
-    ip4_addr_copy(endereco_formatado, endereco_origem);
-    ip4addr_ntoa_r(&endereco_formatado, textoEnderecoTemporario, static_cast<int>(TAMANHO_TEXTO_IP));
-    return textoEnderecoTemporario;
-}
-
-void Wifi::pausarExecucaoPorMilissegundos(uint32_t tempo_milissegundos)
-    {
 #ifdef HABILITAR_FREERTOS
-        vTaskDelay(pdMS_TO_TICKS(tempo_milissegundos));
+    vTaskDelay(pdMS_TO_TICKS(ms));
 #else
-        sleep_ms(tempo_milissegundos);
+    sleep_ms(ms);
 #endif
-    }
+}

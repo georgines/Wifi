@@ -14,6 +14,7 @@ target_link_libraries(Wifi PUBLIC
 if(TARGET FreeRTOS)
     target_compile_definitions(Wifi PUBLIC
             HABILITAR_FREERTOS_LWIP=1
+             HABILITAR_FREERTOS=1
     )
 
     target_link_libraries(Wifi PUBLIC
