@@ -106,3 +106,5 @@ if (!conectado)
 aplicada internamente pela biblioteca.
 - Caso precise de múltiplas interfaces, crie apenas uma instância da classe: a biblioteca guarda ponteiro para a instância ativa para manter consistência do rádio.
 
+**Observação importante:** Se usar FreeRTOS, o objeto Wifi deve ser criado e inicializado dentro de uma função de tarefa (task); nunca crie ou chame métodos da biblioteca fora de uma task, para evitar problemas de concorrência e inicialização do sistema.
+
