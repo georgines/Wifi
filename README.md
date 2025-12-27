@@ -77,3 +77,5 @@ Incluídos em `UtilitariosRede.h`:
 - Consulte o status periodicamente para reagir a quedas.
 - Uma instância da classe por projeto.
 
+**Observação importante:** Se usar FreeRTOS, nunca chame métodos da biblioteca Wifi fora de uma tarefa; sempre utilize dentro de uma função de tarefa para evitar problemas de concorrência e inicialização do sistema.
+
