@@ -79,3 +79,5 @@ Incluídos em `UtilitariosRede.h`:
 
 **Observação importante:** Se usar FreeRTOS, nunca chame métodos da biblioteca Wifi fora de uma tarefa; sempre utilize dentro de uma função de tarefa para evitar problemas de concorrência e inicialização do sistema.
 
+**Observação importante:** Se usar FreeRTOS, o objeto Wifi deve ser criado e inicializado dentro de uma função de tarefa (task); nunca crie ou chame métodos da biblioteca fora de uma task, para evitar problemas de concorrência e inicialização do sistema.
+
