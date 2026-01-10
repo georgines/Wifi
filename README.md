@@ -61,6 +61,7 @@ int main() {
 - `const char *obterIp()` — IP local como string.
 - `const char *obterGatewayPadrao()` — gateway padrão como string.
 - `const char *obterMascaraDeRede()` — máscara de sub-rede como string.
+- `void reiniciarWifi()` - reinicia o rádio do wifi
 
 ### Enum `StatusWifi`
 - `ErroDesconhecido`, `FalhaNaAutenticacao`, `RedeNaoEncontrada`, `Falha`, `Desligado`, `Conectando`, `ConectadoSemIp`, `Conectado`
