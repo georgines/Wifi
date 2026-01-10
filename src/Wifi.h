@@ -28,9 +28,9 @@ public:
     const char *obterIp();
     const char *obterGatewayPadrao();
     const char *obterMascaraDeRede();
-
-private:
     void reiniciarWifi();
+    
+    private:
     void sleep_ms_compatível(uint32_t ms);
     const char *ssid;
     const char *senha;
